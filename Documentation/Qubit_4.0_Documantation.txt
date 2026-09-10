@@ -1,0 +1,90 @@
+#Entire new version of Qubit.....rather than being an voice assistant.....It becomes a complete AI Agent
+
+#Old Qubit implementations just become as a tiny part on this new architecture
+
+
+                         ┌──────────────────┐
+                         │      USER        │
+                         │  Voice / Text    │
+                         └────────┬─────────┘
+                                  ↓
+                         ┌──────────────────┐
+                         │   VOICE LAYER   │
+                         │ STT / Live Audio │
+                         └────────┬─────────┘
+                                  ↓
+                         ┌──────────────────┐
+                         │    QUBIT BRAIN   │
+                         │  LLM / Reasoning │
+                         └────────┬─────────┘
+                                  ↓
+                         ┌──────────────────┐
+                         │   GOAL MANAGER   │
+                         │ Understand goal  │
+                         │ + task context   │
+                         └────────┬─────────┘
+                                  ↓
+                    ┌─────────────────────────────┐
+                    │     COMPUTER WORLD MODEL    │
+                    │                             │
+                    │ Screen │ UI │ Apps │ OS     │
+                    │ Windows│ Files│ State│ Task │
+                    └──────────────┬──────────────┘
+                                   ↓
+                    ┌─────────────────────────────┐
+                    │     CAPABILITY ROUTER       │
+                    │ "What's the best way to do  │
+                    │  this?"                     │
+                    └──────────────┬──────────────┘
+                                   ↓
+              ┌────────────────────┼────────────────────┐
+              ↓                    ↓                    ↓
+     ┌────────────────┐   ┌────────────────┐   ┌────────────────┐
+     │  NATIVE TOOLS  │   │  APP/SEMANTIC  │   │ COMPUTER USE   │
+     │                │   │     TOOLS      │   │                │
+     │ KDE / OS APIs  │   │ Browser / App  │   │ Vision         │
+     │ D-Bus / KWin   │   │ APIs / plugins │   │ Mouse          │
+     │ Shell / Files  │   │                │   │ Keyboard       │
+     └───────┬────────┘   └───────┬────────┘   └───────┬────────┘
+             └────────────────────┼────────────────────┘
+                                  ↓
+                         ┌──────────────────┐
+                         │   PERMISSION     │
+                         │     MANAGER      │
+                         └────────┬─────────┘
+                                  ↓
+                         ┌──────────────────┐
+                         │     EXECUTOR     │
+                         └────────┬─────────┘
+                                  ↓
+                         ┌──────────────────┐
+                         │    COMPUTER      │
+                         └────────┬─────────┘
+                                  ↓
+                         ┌──────────────────┐
+                         │    OBSERVER      │
+                         │ Screenshot/UI/OS │
+                         └────────┬─────────┘
+                                  ↓
+                         ┌──────────────────┐
+                         │     VERIFY       │
+                         │ Did it work?     │
+                         └────────┬─────────┘
+                                  ↓
+                         ┌────────┴─────────┐
+                         │                  │
+                       YES                  NO
+                         │                  │
+                         ↓                  ↓
+                   Update State        Diagnose /
+                         │              Re-plan
+                         │                  │
+                         │                  └──────→ Agent
+                         ↓
+                    TASK COMPLETE
+                         ↓
+                  Voice Response
+                         ↓
+                       USER
+
+

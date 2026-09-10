@@ -4,11 +4,7 @@ import sounddevice as sd
 from dotenv import load_dotenv
 
 from gemini_live import GeminiLive
-from tools import *
-from google.genai import types
-from window_manager.manager import get_window_manager
-
-window_manager = get_window_manager()
+from agent.tool_registry import tool_registry
 
 load_dotenv()
 
@@ -20,172 +16,6 @@ text_input_queue = asyncio.Queue()
 
 loop = None
 is_speaking = False
-
-
-tool_mapping = {
-    #Apps
-    "open_app": open_app,
-    #System
-    "get_current_time": get_current_time,
-    "get_current_date": get_current_date,
-    "get_battery_status": get_battery_status,
-    #Window
-    "get_active_window": get_active_window,
-    "close_active_window":close_active_window,
-    "close_window":close_window,
-    "focus_window":focus_window,
-    "minimize_window":minimize_window,
-    "maximize_window":maximize_window
-}
-
-
-
-tools = [
-    types.Tool(
-        function_declarations=[
-            
-            #App Management
-            types.FunctionDeclaration(
-                name="open_app",
-                description=(
-                    "Open an application. Works with any installed application, "
-                    "for example: brave, vscode, terminal, notes, dolphin, firefox, "
-                    "files, calculator, vlc, intellij idea. If the application is "
-                    "already running and the user requests another instance or a new "
-                    "window, open a new window instead."
-                ),
-                parameters={
-                    "type": "OBJECT",
-                    "properties": {
-                        "app": {
-                            "type": "STRING",
-                            "description": (
-                                "The application name. Examples: brave, vscode, terminal, "
-                                "notes, dolphin, firefox, files, calculator."
-                            )
-                        },
-                        "mode": {
-                            "type": "STRING",
-                            "description": (
-                                "Opening mode. Use 'default' for a normal launch and "
-                                "'new_window' to open another window."
-                            ),
-                            "enum": ["default", "new_window"]
-                        }
-                    },
-                    "required": ["app"]
-                }
-            ),
-
-            #System Functions
-            types.FunctionDeclaration(
-                name="get_current_time",
-                description="Get the current system time"
-            ),
-
-            types.FunctionDeclaration(
-                name="get_current_date",
-                description="Get the current date"
-            ),
-
-            types.FunctionDeclaration(
-                name="get_battery_status",
-                description="Get the battery percentage"
-            ),
-
-            #Window Management
-            types.FunctionDeclaration(
-                name="get_active_window",
-                description="Get information about the currently active desktop window including application name and window title."
-            ),
-
-            types.FunctionDeclaration(
-                name="focus_window",
-                description="Focus a window by target. Target can be an app name, alias, window title, or window ID.",
-                parameters={
-                    "type": "OBJECT",
-                    "properties": {
-                        "app": {
-                            "type": "STRING",
-                            "description": (
-                                "Window target: an application name or alias (e.g. vscode, brave, terminal), "
-                                "the full window title, or the window ID/UUID."
-                            )
-                        }
-                    },
-                    "required": ["app"]
-                }
-            ),
-
-            types.FunctionDeclaration(
-                name="close_active_window",
-                description="Close the currently active desktop window."
-            ),
-
-            types.FunctionDeclaration(
-                name="close_window",
-                description="""
-                Close a window by target. Target can be an app name, alias, window title, or window ID.
-                Examples:
-                - Close Brave
-                - Close VS Code
-                - Close Notes
-                - Close Dolphin
-                """,
-                parameters={
-                    "type": "OBJECT",
-                    "properties": {
-                        "app": {
-                            "type": "STRING",
-                            "description": (
-                                "Window target: an application name or alias, the full window title, "
-                                "or the window ID/UUID."
-                            )
-                        }
-                    },
-                    "required": ["app"]
-                }
-            ),
-
-            types.FunctionDeclaration(
-                name="minimize_window",
-                description="Minimize a window by target. Target can be an app name, alias, window title, or window ID.",
-                parameters={
-                    "type": "OBJECT",
-                    "properties": {
-                        "app": {
-                            "type": "STRING",
-                            "description": (
-                                "Window target: an application name or alias, the full window title, "
-                                "or the window ID/UUID."
-                            )
-                        }
-                    },
-                    "required": ["app"]
-                }
-            ),
-
-            types.FunctionDeclaration(
-                name="maximize_window",
-                description="Maximize a window by target. Target can be an app name, alias, window title, or window ID.",
-                parameters={
-                    "type": "OBJECT",
-                    "properties": {
-                        "app": {
-                            "type": "STRING",
-                            "description": (
-                                "Window target: an application name or alias, the full window title, "
-                                "or the window ID/UUID."
-                            )
-                        }
-                    },
-                    "required": ["app"]
-                }
-            )
-
-        ]
-    )
-]
 
 
 def mic_callback(indata, frames, time, status):
@@ -244,8 +74,8 @@ async def main():
         api_key=os.getenv("GEMINI_API_KEY"),
         model="gemini-3.1-flash-live-preview",
         input_sample_rate=RATE,
-        tools=tools,
-        tool_mapping=tool_mapping
+        tools=tool_registry.get_tools(),
+        tool_mapping=tool_registry.get_tool_mapping()
     )
 
     print("\nQubit Started...")

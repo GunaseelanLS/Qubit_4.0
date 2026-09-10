@@ -1,0 +1,277 @@
+Qubit 4.0 — Project Development Plan
+
+PHASE 0 — CURRENT SYSTEM ANALYSIS
+
+Study the complete Qubit 3.0 codebase.
+Understand main.py, gemini_live.py, tools.py, and window_manager/.
+Identify existing capabilities, dependencies, limitations, and reusable code.
+Freeze the current Qubit 3.0 implementation as the baseline.
+Define the Qubit 4.0 architecture before major code changes.
+
+PHASE 1 — CORE ARCHITECTURE
+
+Separate Qubit into independent layers:
+Voice Layer
+Agent/Brain Layer
+Computer Representation Layer
+Capability/Tool Layer
+Execution Layer
+Platform Layer
+Perception Layer
+Memory Layer
+Security Layer
+Ensure the agent does not directly depend on KDE, GNOME, or any specific OS.
+Define generic interfaces between all layers.
+Convert the current tools.py and window_manager/ into this architecture.
+
+PHASE 2 — GENERIC COMPUTER CONTROL
+
+Build the platform-independent computer-control interface.
+Implement generic operations:
+Mouse movement
+Click / double-click / right-click
+Keyboard input
+Hotkeys
+Scrolling
+Screenshots
+Window interaction
+Clipboard
+Create platform adapters underneath it.
+Keep KDE/KWin and GNOME implementations as optimized native backends.
+Design the system so Windows/macOS support can be added later without changing the agent.
+
+PHASE 3 — COMPUTER PERCEPTION
+
+Give Qubit the ability to understand the current computer state.
+Implement:
+Screenshot perception
+Active-window detection
+Window information
+Application information
+Accessibility/UI-tree information
+Basic filesystem/system state
+Create a unified representation of the computer state.
+Combine visual, semantic, and OS-level information instead of relying only on screenshots.
+
+PHASE 4 — COMPUTER WORLD MODEL
+
+Build Qubit's central Computer World Model.
+Represent:
+Applications
+Windows
+UI elements
+Screen/workspaces
+Files
+Clipboard
+System state
+Current task
+Previous actions
+Keep the model updated after every observation/action.
+Make the agent reason about the computer through this representation.
+
+PHASE 5 — CAPABILITY SYSTEM
+
+Redesign the existing tools into a structured capability system.
+Categorize capabilities:
+System
+Applications
+Files
+Windows
+Browser
+Media
+Terminal
+Computer interaction
+UI interaction
+Give every capability metadata describing what it can do.
+Separate generic capabilities from platform/app-specific optimizations.
+Make capabilities dynamically discoverable by the agent.
+
+PHASE 6 — CAPABILITY ROUTER
+
+Build the component that decides how an action should be performed.
+
+Establish the execution hierarchy:
+
+Native OS/API
+↓
+Application/API integration
+↓
+Accessibility/UI interaction
+↓
+Vision + mouse/keyboard
+↓
+Terminal fallback
+
+Select the most reliable and efficient method available.
+Prevent the LLM from blindly choosing low-level GUI actions when a deterministic API exists.
+
+PHASE 7 — AGENT LOOP
+
+Transform Qubit from a command executor into an agent.
+
+Implement:
+
+Observe
+↓
+Understand
+↓
+Plan
+↓
+Select capability
+↓
+Execute
+↓
+Observe again
+↓
+Verify
+↓
+Continue / Replan / Finish
+
+Support multi-step tasks.
+Maintain task state throughout execution.
+
+PHASE 8 — PLANNING & GOAL MANAGEMENT
+
+Introduce explicit goals instead of treating every voice command as an isolated tool call.
+Convert natural-language requests into tasks/subtasks.
+Support:
+Task decomposition
+Dependency handling
+Planning
+Progress tracking
+Replanning
+Task completion detection
+Allow Qubit to recover when an intermediate action fails.
+
+PHASE 9 — VERIFICATION & RECOVERY
+
+Never assume an action succeeded.
+Implement post-action verification.
+Detect:
+Wrong window
+Failed click
+Application not opened
+Unexpected UI
+Command failure
+State mismatch
+Add recovery strategies.
+Allow Qubit to retry, choose another capability, or replan.
+
+PHASE 10 — APP & PLATFORM INTELLIGENCE
+
+Create optional application integrations.
+Add specialized capabilities for applications where useful.
+
+Maintain the principle:
+
+Generic control = always available
+Specialized integration = optimization
+
+Expand platform adapters beyond KDE/GNOME when the architecture is stable.
+
+PHASE 11 — MEMORY & COMPUTER KNOWLEDGE
+
+Add persistent memory for useful computer context.
+Store things such as:
+Frequently used applications
+User-defined preferences
+Known application capabilities
+Previous successful workflows
+Useful locations/files
+Learned UI information
+Distinguish temporary task state from persistent knowledge.
+
+PHASE 12 — SECURITY & PERMISSIONS
+
+Introduce a permission/policy layer before autonomous execution.
+Classify actions by risk.
+Require confirmation for sensitive/destructive operations.
+Allow trusted low-risk operations to execute automatically.
+Maintain an auditable action history.
+
+PHASE 13 — SELF-LEARNING / CAPABILITY DISCOVERY
+
+Allow Qubit to discover capabilities it does not explicitly know.
+Detect when an application exposes APIs, accessibility interfaces, CLI commands, or other control mechanisms.
+Learn successful interaction strategies.
+Store discovered capabilities for future use.
+Avoid making Qubit dependent on manually creating a tool for every new application.
+
+PHASE 14 — ADVANCED COMPUTER AGENT
+
+Combine:
+World Model
+Capability Router
+Vision
+Accessibility
+Native APIs
+Planning
+Verification
+Recovery
+Memory
+Permissions
+Enable long-running multi-step computer tasks.
+Make Qubit capable of deciding what to do, how to do it, and whether it actually worked.
+
+PHASE 15 — VOICE EXPERIENCE
+
+Improve the Gemini Live interaction layer after the agent architecture is stable.
+Add:
+Natural interruptions
+Context-aware responses
+Streaming responses
+Task progress feedback
+Concise completion/error messages
+Voice-controlled confirmation
+Keep voice as the interface rather than coupling the agent itself to voice.
+
+PHASE 16 — TESTING & BENCHMARKING
+
+Create standardized computer tasks.
+Test:
+Simple commands
+Multi-step tasks
+GUI-only tasks
+API-based tasks
+Failed actions
+Unexpected UI changes
+Permission-sensitive operations
+KDE/GNOME compatibility
+Measure:
+Success rate
+Recovery rate
+Execution time
+Number of actions
+Reliability
+Tool-selection accuracy
+
+PHASE 17 — QUBIT 4.0 FINALIZATION
+
+Clean and modularize the codebase.
+Remove obsolete Qubit 3.0 components.
+Document the architecture and APIs.
+Create developer documentation for adding:
+New platforms
+New applications
+New capabilities
+New perception methods
+Package Qubit as a reusable computer-agent framework.
+
+FINAL QUBIT 4.0 ARCHITECTURE:
+
+Voice
+→ Gemini/LLM
+→ Goal Manager
+→ Planner
+→ Computer World Model
+→ Capability Router
+→ Native API / App API / Accessibility / Vision / Terminal
+→ Executor
+→ Computer
+→ Observer
+→ Verifier
+→ World Model Update
+→ Continue / Replan / Complete
+
+Core objective: Qubit should not simply execute predefined commands. It should understand the current state of the computer, 
+choose the best available method to accomplish a goal, execute it, verify the result, and recover when necessary.
