@@ -1,0 +1,231 @@
+#Next move toward automations rather than just tools controlling
+#Gonna do with agents help
+
+#Architecture for the duture large scale implementation
+
+                              ┌──────────────────────────┐
+                              │          USER            │
+                              │ Voice / Text / Commands  │
+                              └────────────┬─────────────┘
+                                           │
+                                           ▼
+                              ┌──────────────────────────┐
+                              │     INPUT / VOICE        │
+                              │                          │
+                              │ Gemini Live / STT / TTS  │
+                              │ Conversation handling    │
+                              └────────────┬─────────────┘
+                                           │
+                                           ▼
+                    ┌─────────────────────────────────────────┐
+                    │              QUBIT CORE                 │
+                    │                                         │
+                    │  ┌───────────────────────────────────┐  │
+                    │  │ Context Manager                   │  │
+                    │  │ • Current application             │  │
+                    │  │ • Active window                   │  │
+                    │  │ • Workspace                       │  │
+                    │  │ • Previous actions/results        │  │
+                    │  └─────────────────┬─────────────────┘  │
+                    │                    │                    │
+                    │                    ▼                    │
+                    │  ┌───────────────────────────────────┐  │
+                    │  │ Intent Understanding              │  │
+                    │  │ Natural language → structured     │  │
+                    │  │ intent + arguments + constraints  │  │
+                    │  └─────────────────┬─────────────────┘  │
+                    │                    │                    │
+                    │                    ▼                    │
+                    │  ┌───────────────────────────────────┐  │
+                    │  │ Planner                           │  │
+                    │  │ • Single-step action              │  │
+                    │  │ • Multi-step task decomposition   │  │
+                    │  │ • Dependency ordering             │  │
+                    │  └─────────────────┬─────────────────┘  │
+                    │                    │                    │
+                    │                    ▼                    │
+                    │  ┌───────────────────────────────────┐  │
+                    │  │ Permission / Safety Engine        │  │
+                    │  │                                   │  │
+                    │  │ Safe → execute                    │  │
+                    │  │ Sensitive → confirm               │  │
+                    │  │ Destructive → confirm             │  │
+                    │  │ External transaction → confirm    │  │
+                    │  └─────────────────┬─────────────────┘  │
+                    │                    │                    │
+                    │                    ▼                    │
+                    │  ┌───────────────────────────────────┐  │
+                    │  │ Orchestrator                      │  │
+                    │  │ • Select tool                     │  │
+                    │  │ • Execute                         │  │
+                    │  │ • Receive result                  │  │
+                    │  │ • Pass result to next step        │  │
+                    │  │ • Retry / recover                 │  │
+                    │  └─────────────────┬─────────────────┘  │
+                    └────────────────────┼────────────────────┘
+                                         │
+                                         ▼
+                    ┌─────────────────────────────────────────┐
+                    │         CAPABILITY / TOOL LAYER         │
+                    │              WHAT QUBIT DOES            │
+                    │                                         │
+                    │ ┌────────────┐ ┌────────────┐ ┌────────┐│
+                    │ │ Applications |   Windows  │ │ Files  │|
+                    │ │            │ │            │ │        ││
+                    │ │ Open       │ │ Focus      │ │ Create ││
+                    │ │ Launch     │ │ Close      │ │ Read   ││
+                    │ │ Detect     │ │ Minimize   │ │ Write  ││
+                    │ │ Close      │ │ Maximize   │ │ Move   ││
+                    │ └────────────┘ │ Move       │ │ Delete ││
+                    │                │ Resize     │ └────────┘│
+                    │                │ Workspace  │           │
+                    │                └────────────┘           │
+                    │                                         │
+                    │ ┌────────────┐ ┌────────────┐ ┌────────┐│
+                    │ │  Browser   │ │   System   │ │Network ││
+                    │ │   / Web    │ │            │ │        ││
+                    │ │            │ │ Processes  │ │ Wi-Fi  ││
+                    │ │ Navigate   │ │ Services   │ │ Ethernet│
+                    │ │ Search     │ │ Power      │ │ Status ││
+                    │ │ Web apps   │ │ Settings   │ │ Control││
+                    │ └────────────┘ └────────────┘ └────────┘│
+                    │                                         │
+                    │ ┌────────────┐ ┌────────────┐ ┌────────┐│
+                    │ │ Bluetooth  │ │   Audio    │ │  App   ││
+                    │ │            │ │            │ │Specific││
+                    │ │ Devices    │ │ Volume     │ │        ││
+                    │ │ Connect    │ │ Microphone │ │ VS Code││
+                    │ │ Disconnect │ │ Output     │ │ Browser││
+                    │ └────────────┘ └────────────┘ │ Maps   ││
+                    │                               │ etc.   ││
+                    │                               └────────┘│
+                    └────────────────────┬────────────────────┘
+                                         │
+                                         ▼
+                    ┌─────────────────────────────────────────┐
+                    │       PROVIDER / ADAPTER LAYER          │
+                    │              HOW IT IS DONE             │
+                    │                                         │
+                    │   Capability                            │
+                    │       │                                 │
+                    │       ▼                                 │
+                    │   Provider Selection                    │
+                    │       │                                 │
+                    │       ├───────────────┐                 │
+                    │       │               │                 │
+                    │       ▼               ▼                 │
+                    │   Desktop          System               │
+                    │   Provider         Providers            │
+                    │       │               │                 │
+                    │       ├── GNOME       ├── NetworkManager│
+                    │       ├── KDE         ├── BlueZ         │
+                    │       ├── XFCE        ├── PipeWire      │
+                    │       └── ...         ├── systemd       │
+                    │                       └── ...           │
+                    │                                         │
+                    │   Application Providers                 │
+                    │       │                                 │
+                    │       ├── Official API                  │
+                    │       ├── Application interface         │
+                    │       ├── Accessibility API             │
+                    │       ├── Browser automation            │
+                    │       └── Keyboard / mouse fallback     │
+                    └────────────────────┬────────────────────┘
+                                         │
+                                         ▼
+              ┌──────────────────────────────────────────────────────┐
+              │              PLATFORM / ENVIRONMENT                  │
+              │                                                      │
+              │  ┌────────────────┐  ┌────────────────────────────┐  │
+              │  │ Desktop        │  │ Linux System               │  │
+              │  │                │  │                            │  │
+              │  │ GNOME          │  │ D-Bus                      │  │
+              │  │ KDE Plasma     │  │ systemd                    │  │
+              │  │ XFCE           │  │ NetworkManager             │  │
+              │  │ etc.           │  │ BlueZ                      │  │
+              │  └───────┬────────┘  │ PipeWire                   │  │
+              │          │           │ Linux processes/filesystem │  │
+              │          │           └──────────────┬─────────────┘  │
+              │          │                          │                │
+              │          ▼                          ▼                │
+              │  ┌───────────────────────────────────────────────┐   │
+              │  │                APPLICATIONS                   │   │
+              │  │                                               │   │
+              │  │ Browser │ VS Code │ Terminal │ Dolphin │ Kate │   │
+              │  │ Maps    │ VLC     │ IntelliJ │ Files   │ ...  │   │
+              │  └──────────────────────────┬────────────────────┘   │
+              └─────────────────────────────┼────────────────────────┘
+                                            │
+                                            ▼
+                              ┌──────────────────────────┐
+                              │       ACTION RESULT      │
+                              │                          │
+                              │ Success / Failure        │
+                              │ Data / Error / State     │
+                              └────────────┬─────────────┘
+                                           │
+                                           ▼
+                              ┌──────────────────────────┐
+                              │      ORCHESTRATOR        |
+                              │                          │
+                              │ Continue next step?      │
+                              │ Retry?                   │
+                              │ Ask user?                │
+                              │ Finish task?             │
+                              └────────────┬─────────────┘
+                                           │
+                                  ┌────────┴────────┐
+                                  │                 │
+                                  ▼                 ▼
+                         ┌───────────────┐   ┌───────────────┐
+                         │ Next Tool     │   │ Task Complete │
+                         │ / Next Step   │   │               │
+                         └───────┬───────┘   └───────┬───────┘
+                                 │                   │
+                                 └───────┐   ┌───────┘
+                                         ▼   ▼
+                                  ┌───────────────┐
+                                  │ QUBIT RESPONSE│
+                                  │ Voice + Text  │
+                                  └───────┬───────┘
+                                          │
+                                          ▼
+                                       USER
+
+
+KEY ARCHITECTURAL RULE:
+
+        WHAT QUBIT WANTS TO DO
+                    │
+                    ▼
+             CAPABILITY / TOOL
+                    │
+                    ▼
+        HOW IT SHOULD BE DONE
+                    │
+                    ▼
+             PROVIDER / ADAPTER
+                    │
+                    ▼
+        WHERE IT IS EXECUTED
+                    │
+                    ▼
+       Linux / GNOME / KDE / APP
+                    │
+                    ▼
+       WHETHER IT IS ALLOWED
+                    │
+                    ▼
+          PERMISSION ENGINE
+
+        ┌─────────────────────────────────────────────────────┐
+        │              FUTURE EXTENSIBILITY                   │
+        │                                                     │
+        │  New Capability → Register Tool                     │
+        │  New Desktop    → Add Desktop Provider              │
+        │  New System API → Add System Provider               │
+        │  New Application→ Add Application Adapter           │
+        │  New Community Feature → Add Plugin                 │
+        │                                                     │
+        │  Core Qubit logic does NOT need to be rewritten.    │
+        └─────────────────────────────────────────────────────┘

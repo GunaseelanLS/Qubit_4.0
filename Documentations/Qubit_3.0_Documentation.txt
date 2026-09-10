@@ -1,0 +1,348 @@
+#Live_API_1.0 Documentation
+
+#NEXUS_1.0[Done] - Summary
+- Voice assistant 
+- Customized voice and personality
+- Terminate Commands for Nexus
+- Resloved voice looping during output
+
+
+#Creating V-Environment
+python3 -m venv venv
+
+#Activating it
+source venv/bin/activate
+
+#Removing command[In case needed]
+rm -rf venv
+
+#Installing packages
+pip install google-genai
+pip install python-dotenv
+pip install sounddevice
+pip install numpy
+
+pip install Pyaudio...globally in fedora itselfs
+
+#Paste API key from goole AI studio in .env
+
+#configurations can be altered in config.json
+
+#Uffff...inspected many specs of SDK for proper customized code
+genai.**version**                    → Check installed Gemini SDK version
+from google.genai import live        → Verify Live API module exists
+dir(live)                            → List Live API classes/functions
+dir(live.AsyncLive)                  → Find available Live methods
+inspect.signature(live.AsyncLive.connect) → Check Live connection parameters
+types.LiveConnectConfig.model_fields.keys() → View Live session configuration options
+types.SpeechConfig.model_fields.keys() → Inspect speech settings
+types.VoiceConfig.model_fields.keys() → Inspect voice configuration structure
+types.PrebuiltVoiceConfig.model_fields.keys() → Find voice name field
+dir(AsyncSession)                    → View session communication methods
+inspect.signature(AsyncSession.receive) → Check response receiving method
+client.models.list()                 → List available Gemini models
+Live connection test                 → Verify API key and model access
+response_modalities=["AUDIO"]        → Enable voice responses
+sd.query_devices()                   → List microphone/speaker devices
+sd.default.device                    → Check default input/output device
+sd.default.samplerate                → Check default sample rate
+audio_test.py                        → Verify microphone recording
+sd.play()                            → Verify speaker playback
+python main.py                       → Test official Gemini Live implementation
+.env verification                    → Ensure API key loading
+lsof -i :8000                        → Find process using port 8000
+GeminiLive extraction                → Reuse working Live API engine
+terminal_assistant.py                → Build terminal-based voice assistant
+is_speaking flag                     → Prevent Gemini hearing its own voice!!!
+voice_name="Aoede"                   → Customize assistant voice!!!
+system_instruction                   → Customize assistant personality!!!
+
+
+#Copied gemini_live.py from gemini-api-examples from Github
+
+#Code in main.py
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+#Nexus_2.0....Second Phase
+
+
+#Started implementing voice commands to run programms
+
+#Created a tools.py file to write functions for onpening or closing progeamms..extraction
+
+#imported it in main.py and declared tool_mapping and tools
+
+    tools-List of tools exposed to Gemini.
+    So Gemini knows what actions are available.
+    Example:
+    "Open App"
+    "Close App"
+    "Get Battery Status"
+
+    Without tools:
+    Gemini doesn't know these functions exist.
+
+
+    tool_mapping-Dictionary that connects tool names to actual Python functions.
+    Example:
+    "open_app"
+        ↓
+    open_app()
+
+    "close_app"
+        ↓
+    close_app()
+
+    When Gemini says:
+    "I want to call open_app"
+    Python must know which function to execute.
+
+    Without tool_mapping:
+    Gemini knows the tool exists,
+    but Python doesn't know where the code is.
+
+
+#In gemini_live.py[I had some personal doubt]
+   tool_mapping #in main.py
+         ↓
+   GeminiLive(...) #passed through this constructor to the gemini_live.py
+         ↓
+   tool_mapping parameter 
+         ↓
+   self.tool_mapping #declaration in gemini_live.py automatically happens
+
+
+#Process Control Journey!!!
+
+   #Started with separate functions
+      open_brave()
+      open_vscode()
+      open_terminal()
+
+      Problem:
+      - Repetitive code
+      - Need new function for every app
+
+   #Created Generic App System
+      Apps = {
+         "brave": {...},
+         "vscode": {...},
+         ...
+      }
+      Functions:
+      - open_app(app)
+      - close_app(app)
+
+      Benefit:
+      - One function works for all apps
+
+   #Implemented Closing using pkill
+      pkill -f process_name
+
+      Problem:
+      - Closed every matching process
+      - Closing VS Code also killed Nexus
+
+   #Switched to PID Tracking
+      process = subprocess.Popen(...)
+      opened_apps[app] = process
+
+      Close using:
+      process.terminate()
+
+      Benefit:
+      - Closes only apps opened by Nexus
+
+   #Added Process Detection
+      is_running()
+      Uses:
+      psutil.process_iter()
+
+      Added:
+      "process" field in Apps dictionary
+
+      Example:
+      "vscode": {
+         "process": "/usr/share/code/code"
+      }
+
+      Benefit:
+      - Prevents opening duplicate apps
+
+   #Added New Window Support
+      Functions:
+      - open_new_app()
+      - close_new_app()
+
+      Examples:
+      Open new VS Code
+      Open new Brave
+      Open new Notes
+
+   #Discovered Launcher PID Problem
+
+      subprocess.Popen()
+      returns launcher PID
+      Real application often starts in another PID
+
+      Launcher PID may die
+      Not reliable for VS Code, Brave, Chrome
+
+
+   #Implemented Process Discovery
+
+      Take PID snapshot before launch
+      Launch app
+      Take PID snapshot after launch
+      Find newly created PIDs
+      Store actual application PIDs
+               ||
+      before = running PIDs
+      launch app
+      after = running PIDs
+      new_pids = after - before
+
+      Benefit:
+      - Notes/Kate open and close works 
+      Cons:
+      - Captures helper processes too
+      - Browser issues
+
+
+   #Brave Special Case
+
+      Brave shows:
+      "Opening in existing browser session"
+
+      Meaning:
+      - New window uses existing browser process
+      - No separate browser PID created
+
+      Result:
+      - PID tracking cannot close individual Brave windows
+      
+#Next thought of doing window management system which is reliable to work on window operations like open,close,minimize,etc...
+
+#BUt as my KDE was wayland type...it doesnt works well
+
+#Also causes issues when switching between gnome and KDE
+
+#So the final concluded structure is to implement
+      Nexus
+         │
+         ├── Process Layer
+         │     ├── Open App
+         │     ├── Close App
+         │     └── Monitor App
+         │
+         └── Window Layer
+               ├── KDE Backend - Holds KDE based API key for window functions
+               └── GNOME Backend - Holds Gnome based API key.
+
+#Implemented nexus communication with Kwin using gdbus
+   #gdbus is used to communicate with some system functions using python
+
+      Nexus
+      |
+      Python launches gdbus
+      |
+      gdbus starts
+      |
+      connects to D-Bus[System]
+      |
+      finds KWin
+      |
+      asks question[Search for function]
+      |
+      gets reply
+      |
+      exits
+
+   -Done open app, close app, focus app using this kwin functions
+   -Removed old PID tracking open and close app method
+   -Open app opens app and also new window by checking whether the app is already running or not 
+   -Close app calls the focus() function and closes the focuse window
+      but i just need to click on the actively focued window once to close it actually
+   -This current open and close app is an integration of both the process tracking and the window management
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+#Nexus_3.0 => Qubut_3.0
+#Architecture and core idea
+
+                         ┌──────────────────────┐
+                         │      USER VOICE      │
+                         └──────────┬───────────┘
+                                    │
+                                    ▼
+                         ┌──────────────────────┐
+                         │  UNIVERSAL VOICE I/O │
+                         │  STT + TTS / Live    │
+                         └──────────┬───────────┘
+                                    │
+                                    ▼
+                    ┌─────────────────────────────┐
+                    │        QUBIT CORE           │
+                    │                             │
+                    │ Identity / State / Context  │
+                    │ Intent + Model Routing      │
+                    └──────┬──────────┬───────────┘
+                           │          │
+             ┌─────────────┘          └─────────────┐
+             ▼                                      ▼
+    ┌──────────────────┐                   ┌──────────────────┐
+    │   MODEL ROUTER   │                   │      TOOLS       │
+    └────────┬─────────┘                   └────────┬─────────┘
+             │                                      │
+      ┌──────┴──────┐                     ┌─────────┴─────────┐
+      ▼             ▼                     ▼                   ▼
+ ┌─────────┐   ┌──────────┐        System Automation     Other Tools
+ │ Gemini  │   │  Ollama  │        Window / Apps / ...
+ │ Online  │   │ Offline  │
+ └─────────┘   └──────────┘
+      │             │
+      └──────┬──────┘
+             ▼
+    ┌──────────────────────┐
+    │   SHARED LOCAL       │
+    │      MEMORY          │
+    │                      │
+    │ SQLite + Vector DB   │
+    └──────────┬───────────┘
+               │
+               ▼
+    ┌──────────────────────┐
+    │    CONTEXT / RAG     │
+    │ Retrieval + Context  │
+    └──────────────────────┘
+
+
+#Routing for KDE and Gnome Environments
+
+                   QUBIT
+                     │
+               tools.py
+                     │
+              window_manager
+                     │
+          ┌──────────┴──────────┐
+          │                     │
+       KDE?                  GNOME?
+          │                     │
+       kde.py                gnome.py
+          │                     │
+        KWin              D-Bus Extension
+                                │
+                             Mutter
+
+
+#Handed over to Opencode
+
+- GNOME window manager: Added/reloaded the new D-Bus window-control interface, GNOME app alias matching, and verified close operations.
+- Window reliability: Added actual post-action verification and handling for unsaved-file dialogs.
+- Application support: Kept 5 fully tracked apps — Brave, VS Code, Terminal, Dolphin, Kate — with dedicated aliases and launch handling.
+- Generic app support: Added .desktop discovery/fuzzy matching so other installed applications can be opened automatically.
+- Universal window operations: Extended focus/close/minimize/maximize to work by app name, window title, class, or ID instead of only the tracked apps.
+- KDE + GNOME: Both desktop backends now support the same common window-operation interface.
