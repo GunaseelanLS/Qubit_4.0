@@ -33,6 +33,16 @@ class GeminiLive:
 
         self.tools = tools or []
         self.tool_mapping = tool_mapping or {}
+        self._session = None
+
+    async def send_image(self, data: bytes, mime_type: str = "image/png"):
+        """Send an image to the active Gemini Live session."""
+        if not self._session:
+            raise RuntimeError("No active Gemini Live session")
+        logger.info(f"Sending image to Gemini Live: {len(data)} bytes, mime_type={mime_type}")
+        await self._session.send_realtime_input(
+            video=types.Blob(data=data, mime_type=mime_type)
+        )
 
     async def start_session(self, audio_input_queue, video_input_queue, text_input_queue, audio_output_callback, audio_interrupt_callback=None):
         identity = self.config_data["identity"]
@@ -78,8 +88,8 @@ class GeminiLive:
         - Do not invent facts.
         - If unsure, clearly say you do not know.
         - Prefer practical solutions over theoretical discussion.
-        - Talk like a human, not like an AI. Use natural language and avoid robotic phrasing.
-        -Use English in american-indian accent unless i speak in tamil.
+        - Screen Awareness: Strictly demand-driven. ONLY invoke the screenshot tool when the user explicitly asks about what is on their screen/window/display, asks you to look at something visible, or when executing a screen-dependent action (such as clicking or finding an on-screen element). NEVER invoke the screenshot tool for general conversation, weather, factual queries, chit-chat, or questions unrelated to current screen contents. Once an image is received into your session, visual context of that screen/window remains available to you for follow-up questions without needing repeated screenshots if the window has not changed. If the user explicitly asks for a fresh or current screenshot, or indicates that something on the screen has changed, call the screenshot tool with force=true.
+        - Use English in american accent unless i speak in tamil.
         - Also while using tamil, be natural, casual and human like fluency. Not too local or too formal tamil.
         - Use tamil words and phrases that are commonly used in everyday conversation among tamil speakers, especially in the context of technology and coding. Avoid using overly literary or classical tamil that might not fit the casual and approachable tone of Qubit.
         """
@@ -109,6 +119,14 @@ class GeminiLive:
         logger.info(f"Connecting to Gemini Live with model={self.model}")
         try:
           async with self.client.aio.live.connect(model=self.model, config=config) as session:
+            self._session = session
+            try:
+                from capabilities.screen import set_image_sender
+                set_image_sender(self.send_image)
+                from agent.screen_policy import screen_policy
+                screen_policy.set_interactive_mode(True)
+            except ImportError:
+                pass
             logger.info("Gemini Live session opened successfully")
             
             async def send_audio():
@@ -128,8 +146,9 @@ class GeminiLive:
                     while True:
                         chunk = await video_input_queue.get()
                         logger.info(f"Sending video frame to Gemini: {len(chunk)} bytes")
+                        mime_type = "image/png" if chunk.startswith(b"\x89PNG") else "image/jpeg"
                         await session.send_realtime_input(
-                            video=types.Blob(data=chunk, mime_type="image/jpeg")
+                            video=types.Blob(data=chunk, mime_type=mime_type)
                         )
                 except asyncio.CancelledError:
                     logger.debug("send_video task cancelled")
@@ -141,6 +160,11 @@ class GeminiLive:
                     while True:
                         text = await text_input_queue.get()
                         logger.info(f"Sending text to Gemini: {text}")
+                        try:
+                            from agent.screen_policy import screen_policy
+                            screen_policy.record_user_query(text)
+                        except Exception:
+                            pass
                         await session.send_realtime_input(text=text)
                 except asyncio.CancelledError:
                     logger.debug("send_text task cancelled")
@@ -174,7 +198,13 @@ class GeminiLive:
                                                 audio_output_callback(part.inline_data.data)
                                 
                                 if server_content.input_transcription and server_content.input_transcription.text:
-                                    await event_queue.put({"type": "user", "text": server_content.input_transcription.text})
+                                    u_text = server_content.input_transcription.text
+                                    try:
+                                        from agent.screen_policy import screen_policy
+                                        screen_policy.record_user_query(u_text)
+                                    except Exception:
+                                        pass
+                                    await event_queue.put({"type": "user", "text": u_text})
                                 
                                 if server_content.output_transcription and server_content.output_transcription.text:
                                     await event_queue.put({"type": "gemini", "text": server_content.output_transcription.text})
@@ -199,11 +229,13 @@ class GeminiLive:
                                     if func_name in self.tool_mapping:
                                         try:
                                             tool_func = self.tool_mapping[func_name]
-                                            if inspect.iscoroutinefunction(tool_func):
-                                                result = await tool_func(**args)
-                                            else:
-                                                loop = asyncio.get_running_loop()
-                                                result = await loop.run_in_executor(None, lambda: tool_func(**args))
+                                            from agent.screen_policy import screen_policy
+                                            with screen_policy.active_tool_context(func_name, args):
+                                                if inspect.iscoroutinefunction(tool_func):
+                                                    result = await tool_func(**args)
+                                                else:
+                                                    loop = asyncio.get_running_loop()
+                                                    result = await loop.run_in_executor(None, lambda: tool_func(**args))
                                         except Exception as e:
                                             result = f"Error: {e}"
                                         
@@ -245,6 +277,23 @@ class GeminiLive:
                     yield event
             finally:
                 logger.info("Cleaning up Gemini Live session tasks")
+                try:
+                    from capabilities.screen import set_image_sender
+                    set_image_sender(None)
+                except ImportError:
+                    pass
+                try:
+                    from agent.screen_state import screen_state
+                    screen_state.invalidate(reason="session_ended")
+                    await screen_state.stop_screencast(reason="gemini_session_ended")
+                except Exception as e:
+                    logger.warning(f"Error stopping screencast on session cleanup: {e}")
+                try:
+                    from agent.screen_policy import screen_policy
+                    screen_policy.clear()
+                except Exception:
+                    pass
+                self._session = None
                 send_audio_task.cancel()
                 send_video_task.cancel()
                 send_text_task.cancel()
@@ -253,4 +302,5 @@ class GeminiLive:
             logger.error(f"Gemini Live session error: {type(e).__name__}: {e}\n{traceback.format_exc()}")
             raise
         finally:
+            self._session = None
             logger.info("Gemini Live session closed")

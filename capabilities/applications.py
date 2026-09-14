@@ -131,6 +131,14 @@ def _find_desktop(app):
     return best
 
 
+def _invalidate_screen(action: str) -> None:
+    try:
+        from agent.screen_state import screen_state
+        screen_state.invalidate(reason=action)
+    except Exception:
+        pass
+
+
 def open_app(app, mode="default"):
     app = app.lower()
 
@@ -141,6 +149,7 @@ def open_app(app, mode="default"):
             return f"{app} is not supported."
 
         subprocess.Popen(["gio", "launch", desktop], start_new_session=True)
+        _invalidate_screen(f"open_app:{app}")
         return f"{app} opened successfully!"
 
     if mode == "default" and is_running(Apps[app]["process"]):
@@ -158,6 +167,7 @@ def open_app(app, mode="default"):
     )
 
     subprocess.Popen(command, start_new_session=True)
+    _invalidate_screen(f"open_app:{app}")
 
     time.sleep(1.5)
 

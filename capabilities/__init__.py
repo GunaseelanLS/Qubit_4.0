@@ -12,6 +12,7 @@ from .windows import (
     minimize_window,
     maximize_window,
 )
+from .screen import screenshot, stop_screencast
 
 __all__ = [
     "open_app",
@@ -24,4 +25,7 @@ __all__ = [
     "close_window",
     "minimize_window",
     "maximize_window",
+    "screenshot",
+    "stop_screencast",
 ]
+

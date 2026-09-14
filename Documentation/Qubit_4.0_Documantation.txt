@@ -87,4 +87,139 @@
                          ↓
                        USER
 
+# Architecture of Qubit 4.0
+
+Qubit_4.0/
+├── agent/
+│   └── tool_registry.py
+│
+├── capabilities/
+│   ├── applications.py
+│   ├── system.py
+│   └── windows.py
+│
+├── computer/          # future generic computer control
+├── perception/        # future screen/UI perception
+├── platforms/         # future platform-specific adapters
+├── memory/            # future memory
+├── security/          # future permissions/safety
+├── voice/             # future voice abstraction
+│
+├── window_manager/    # existing KDE/GNOME implementation
+│
+├── gemini_live.py     # Gemini Live communication
+├── main.py            # application entry point
+├── config.json
+└── Documentation/
+
+
+agent/ → future agent intelligence; currently only Tool Registry.
+capabilities/ → what Qubit can do.
+window_manager/ → how window operations currently work on KDE/GNOME.
+computer/ → future generic mouse, keyboard, screen, etc.
+perception/ → future understanding of the screen/UI.
+platforms/ → future OS/platform-specific implementations.
+memory/ → future persistent/contextual memory.
+security/ → future permissions and safety.
+voice/ → future voice abstraction.
+gemini_live.py → Gemini Live connection and streaming.
+main.py → startup and system wiring.
+
+#Screenshot implementation to get winodw details
+Voice command
+    ↓
+Gemini Live
+    ↓
+Screenshot tool call
+    ↓
+Tool Registry
+    ↓
+capabilities/screen.py
+    ↓
+computer/screen.py
+    ↓
+XDG Screenshot Portal via D-Bus
+    ↓
+Screenshot PNG
+    ↓
+~/Pictures/Qubit/
+    ↓
+Read PNG bytes
+    ↓
+gemini_live.py → send_image()
+    ↓
+Gemini Live receives image
+    ↓
+Gemini analyzes screenshot
+    ↓
+Voice response
+    ↓
+Temporary screenshot deleted
+
+
+#Implement an OCR-based Screen Perception layer for Qubit 4.0.
+
+                 PNG
+               /     \
+              ↓       ↓
+           Gemini     OCR[Manualy added]
+           Vision      ↓
+              \       /
+               ↓     ↓
+              Screen
+            Perception
+                 ↓
+              Gemini
+
+#Perception:
+
+    Combines active window metadata with OCR results into a structured ScreenPerception object. It extracts screen text,
+detected filenames/tabs, and formats the information as context for Gemini alongside the captured image.
+
+
+#Implement an on-demand ScreenCast capture system for Qubit 4.0 using the XDG ScreenCast Portal + PipeWire.
+
+User asks about the screen
+        ↓
+ScreenCast starts (on-demand)
+        ↓
+PipeWire provides latest screen frame
+        ↓
+      ┌───────────────┐
+      ↓               ↓
+ Gemini Vision      OCR Engine
+      ↓               ↓
+Visual analysis    Text + positions
+      └───────┬───────┘
+              ↓
+      ScreenPerception
+              ↓
+ Active Window + OCR + Timestamp
+              ↓
+        ScreenState
+              ↓
+Stores latest observation
+& checks freshness/window changes
+              ↓
+   Formatted context + image
+              ↓
+          Gemini
+
+
+# After implementing perception, Qubit suddenly became able to answer "previous window."
+
+# But the reason is not a dedicated previous-window mechanism in the code we've inspected.
+
+# It's most likely Gemini using the richer screen/context information to infer the target.
+
+
+# New screen policy implementation that decides whether a screen sharing or screenshot needed to be performed or not.
+# And a screen access gate in security to control screen access from gemini on its own behalf.
+    - load_restore_token() → reads the saved portal token.
+    - save_restore_token() → stores the token securely.
+    - clear_restore_token() → removes it.
+
+# Persistent screen sharing permission is given to not to ask permission for screen casting for every new Qubit session.
+
+# Implemented switch previous window method by saving latest window as previous before switching to another.
 

@@ -4,19 +4,24 @@ from typing import Any, Callable, Dict, List
 from google.genai import types
 
 from capabilities.applications import open_app
+
 from capabilities.system import (
     get_current_time,
     get_current_date,
     get_battery_status,
 )
+
 from capabilities.windows import (
     get_active_window,
     close_active_window,
     focus_window,
+    focus_previous_window,
     close_window,
     minimize_window,
     maximize_window,
 )
+
+from capabilities.screen import screenshot
 
 
 class ToolRegistry:
@@ -66,7 +71,7 @@ def create_default_registry() -> ToolRegistry:
             name="open_app",
             description=(
                 "Open an application. Works with any installed application, "
-                "for example: brave, vscode, terminal, notes, dolphin, firefox, "
+                "for example: brave, vscode, terminal, notes, dolphin, "
                 "files, calculator, vlc, intellij idea. If the application is "
                 "already running and the user requests another instance or a new "
                 "window, open a new window instead."
@@ -78,7 +83,7 @@ def create_default_registry() -> ToolRegistry:
                         "type": "STRING",
                         "description": (
                             "The application name. Examples: brave, vscode, terminal, "
-                            "notes, dolphin, firefox, files, calculator."
+                            "notes, dolphin, files, calculator."
                         ),
                     },
                     "mode": {
@@ -233,6 +238,45 @@ def create_default_registry() -> ToolRegistry:
                     }
                 },
                 "required": ["app"],
+            },
+        ),
+    )
+
+    registry.register(
+        name="focus_previous_window",
+        func=focus_previous_window,
+        declaration=types.FunctionDeclaration(
+            name="focus_previous_window",
+            description="Switch to the previously focused window.",
+        ),
+    )
+    
+    # Screen / Perception Capabilities
+    registry.register(
+        name="screenshot",
+        func=screenshot,
+        declaration=types.FunctionDeclaration(
+            name="screenshot",
+            description=(
+                "Demand-driven screen observation: observe the current desktop screen ONLY when the user explicitly "
+                "asks about what is on their screen/window/display, asks to look at or read something visible, or when "
+                "a screen-dependent action (such as clicking or finding an on-screen element) requires visual context. "
+                "DO NOT call this tool for general conversational queries (e.g., weather, general knowledge, explanations, chit-chat). "
+                "Qubit maintains screen awareness: if the current window was already captured and is unchanged, the existing "
+                "observation is reused automatically. Set force=true if the user explicitly requests a fresh screenshot, "
+                "says something changed on screen, or after an action."
+            ),
+            parameters={
+                "type": "OBJECT",
+                "properties": {
+                    "force": {
+                        "type": "BOOLEAN",
+                        "description": (
+                            "Set to true to force capturing a fresh screenshot, bypassing the existing observation "
+                            "(e.g. when the user explicitly asks for a fresh/current screenshot, says something changed, or after a screen-altering action)."
+                        ),
+                    }
+                },
             },
         ),
     )
